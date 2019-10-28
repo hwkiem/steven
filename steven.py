@@ -3,15 +3,16 @@ from twilio.twiml.messaging_response import MessagingResponse, Body, Message
 from twilio.rest import Client
 
 app = Flask(__name__)
-shopping = ["cheese", "bread", "coffee"]
+shopping = {}
 
 
 def add_item(item):
-    if item in shopping:
-        return "item already added"
+    if item in shopping.keys():
+        shopping[item] += 1
     else:
-        shopping.append(item.lower())
-        return "added " + item
+        shopping[item] = 1
+
+    return item + " x" + str(shopping[item])
 
 
 def gen_list_response():
