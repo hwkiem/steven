@@ -1,50 +1,45 @@
-from flask import Flask, request
-from twilio.twiml.messaging_response import MessagingResponse, Body, Message
-from twilio.rest import Client
+import pickle
 
-app = Flask(__name__)
 shopping = {}
 
 
-def add_item(item):
-    if item in shopping.keys():
-        shopping[item] += 1
-    else:
-        shopping[item] = 1
+def handle(params):
+    global shopping
+    pickle_in = open("shopping.p", "rb")
+    shopping = pickle.load(pickle_in)
+    res = 'Error: invalid command'
+    cmd = params[1].lower()
+    if cmd == 'add':
+        res = add_item(params[2], params[3])
+    elif cmd == 'list':
+        res = gen_list_response()
+    elif cmd == 'bought':
+        res = remove_item(params[1], int(params[2]))
+    pickle_out = open("shopping.p", "wb")
+    pickle.dump(shopping, pickle_out)
+    pickle_out.close()
+    return res
 
-    return item + " x" + str(shopping[item])
+
+def add_item(item, cnt):
+    if item in shopping.keys():
+        shopping[item] += int(cnt)
+    else:
+        shopping[item] = int(cnt)
+    return gen_list_response()
 
 
 def gen_list_response():
     return str(shopping)
 
 
-def remove_item(item):
+def remove_item(item, cnt):
     if item in shopping:
-        shopping.remove(item)
+        if cnt >= shopping[item]:
+            del shopping[item]
+        else:
+            shopping[item] -= cnt
         return gen_list_response()
     else:
-        return "item not in shopping list"
+        return "No such item in list"
 
-
-@app.route("/sms", methods=['POST', 'GET'])
-def sms_handler():
-    sms = request.values.get('Body', None)
-    resp = MessagingResponse()
-
-    params = sms.split(" ")
-    print(params)
-    if params[0].lower() == 'add':
-        resp.message(add_item(params[1]))
-    elif params[0].lower() == 'list':
-        resp.message(gen_list_response())
-    elif params[0].lower() == 'bought':
-        resp.message(remove_item(params[1]))
-    else:
-        resp.message("invalid command")
-
-    return str(resp)
-
-
-if __name__ == "__main__":
-    app.run(debug=True)
