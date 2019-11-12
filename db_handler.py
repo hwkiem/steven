@@ -14,16 +14,16 @@ def add_entry(params):
     cur = conn.cursor() # cursor object to maneuver/manipulate database
     cur.execute('INSERT INTO entries VALUES (?, ? , ?, ?)', params) 
     cur.execute('SELECT * FROM entries') # in order to print/fetchall()
-    print(cur.fetchall())
     conn.commit()
     conn.close()
+    return params[2] + " added successfully"
 
 def get_all_entries():
     conn = sqlite3.connect('steven.sqlite3') # connect to steven database
     cur = conn.cursor() # cursor object to maneuver/manipulate database
     cur.execute('SELECT * FROM entries') # in order to print/fetchall()
-    print(type(cur.fetchall()))
     conn.close()
+    return str(cur.fetchall())
 
 
 
