@@ -23,10 +23,9 @@ def init_db():  # make the database for the first time
         sql = (
             '''
             CREATE TABLE IF NOT EXISTS Users (
-            UserID INTEGER PRIMARY KEY,
-            Username TEXT NOT NULL,
-            AllGroups TEXT NOT NULL,
+            UserID INTEGER NOT NULL,
             CurGroup INTEGER NOT NULL,
+            AllGroups TEXT NOT NULL,
             FOREIGN KEY (CurGroup) REFERENCES Groups (GroupID)
             )
             '''
@@ -60,6 +59,7 @@ def create_connection(db='steven.sqlite3'):
         return conn
     except Error as e:
         print(e)
+        print("create_connection error")
         return None
 
 
@@ -74,9 +74,10 @@ def create_table(sql):
         conn.close()
     except Error as e:
         print(e)
+        print("create table error")
 
 
-def create_group(name):
+def user_create_item(name, origin):
     conn = create_connection()
     if conn is None:
         print("failed to make connection")
@@ -84,18 +85,25 @@ def create_group(name):
         c = conn.cursor()
         sql = (
             '''
-            INSERT INTO Groups(Name)
-            VALUES(?)
+            INSERT INTO Items (
+            GroupID,
+            UserID,
+            Name,
+            StatusID
+            ) VALUES(?, ?, ?, 0)
             '''
         )
-        c.execute(sql, (name,))
+        curgroup = user_retrieve_cur_group(origin)
+        c.execute(sql, (curgroup, origin, name))
         conn.commit()
         conn.close()
     except Error as e:
         print(e)
+        print("user create item error")
 
 
-def retrieve_groups(user):
+
+def user_retrieve_cur_group(phone):
     conn = create_connection()
     if conn is None:
         print("failed to make connection")
@@ -103,14 +111,84 @@ def retrieve_groups(user):
         c = conn.cursor()
         sql = (
             '''
-            SELECT AllGroups FROM Users WHERE UserID=?
+            SELECT CurGroup FROM Users WHERE UserID=?
             '''
         )
-        c.execute(sql, user)
+        c.execute(sql, phone)
         r = c.fetchall()
+        return int(r)
+    except Error as e:
+        print(e)
+        print("user retrieve cur group error")
+
+
+def user_create_group(name, usernum):
+    conn = create_connection()
+    if conn is None:
+        print("failed to make connection")
+
+    groups = user_retrieve_groups(usernum)
+    if name not in groups:
+        try:
+            c = conn.cursor()
+            sql = (
+                '''
+                INSERT INTO Groups(Name)
+                VALUES(?)
+                '''
+            )
+            c.execute(sql, (name,))
+            conn.commit()
+            conn.close()
+            user_update_groups(usernum, name)
+        except Error as e:
+            print(e)
+            print("user create group error")
+
+
+def user_update_groups(usernum, groupname):
+    conn = create_connection()
+    if conn is None:
+        print("failed to make connection")
+
+    groups = user_retrieve_groups(usernum)
+    for g in groups:
+        print(g)
+    if groupname not in groups:
+        try:
+            c = conn.cursor()
+            sql = (
+                '''
+                UPDATE Users SET AllGroups = ?
+                WHERE UserID = ?
+                '''
+            )
+            groups = groups + (groupname,)
+            c.execute(sql, (groups + (usernum, )))
+            conn.commit()
+            conn.close()
+        except Error as e:
+            print(e)
+            print("user update groups error")
+
+
+def user_retrieve_groups(user):
+    conn = create_connection()
+    if conn is None:
+        print("failed to make connection")
+    try:
+        c = conn.cursor()
+        sql = (
+            '''
+            SELECT AllGroups from USERS WHERE UserID=?
+            '''
+        )
+        c.execute(sql, (user,))
+        r = c.fetchall()[0]
         return r
     except Error as e:
         print(e)
+        print("user retrieve groups error")
 
 
 def see_db_groups():
@@ -168,6 +246,43 @@ def invite_user(conn, group, newuser):
     return None
 
 
+def create_user(usernum):
+    conn = create_connection()
+    if not retrieve_user(usernum):
+        try:
+            c = conn.cursor()
+            sql = (
+                '''
+                INSERT INTO Users (UserID, CurGroup, AllGroups)
+                VALUES(?, ?, ?)
+                '''
+            )
+            allgroups = 'general'
+            c.execute(sql, (usernum, 1, allgroups))
+            conn.commit()
+            conn.close()
+        except Error as e:
+            print(e)
+            print("create_user error")
+
+
+def retrieve_user(usernum):
+    conn = create_connection()
+    try:
+        c = conn.cursor()
+        sql = (
+            '''
+            SELECT * FROM Users WHERE UserID=?
+            '''
+        )
+        c.execute(sql, (usernum,))
+        res = c.fetchall()
+        return res
+    except Error as e:
+        print(e)
+        print("retrieve create group error")
+
+
 if __name__ == '__main__':
     print(
         "Select an option:\n1) initialize\n2)see_databases"
@@ -184,3 +299,5 @@ if __name__ == '__main__':
         print("--------------")
     else:
         print("invalid command")
+
+

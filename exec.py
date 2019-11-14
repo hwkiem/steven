@@ -12,6 +12,9 @@ def steven():
         sms_body = request.values.get('Body', None).split(' ')
         sms_from = request.values.get('From', None)
 
+        # Check user
+        db_handler.create_user(sms_from)
+
         #  Creating a response object
         resp = MessagingResponse()
 

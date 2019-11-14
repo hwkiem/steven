@@ -8,16 +8,19 @@ def handle(c: Cmd):
     if c.cmd == 'Group':
         group(c)
     elif c.cmd == 'Item':
-        return item(c.flags, c.params, c.origin)
+        return item(c)
     else:
         return "invalid command. Type \'help\' for a list of valid commands."
 
 
 def group(c: Cmd):
-    print(c.to_string())
 
     if '-c' in c.flags and len(c.params) == 1:
-        db_handler.create_group(c.params[0])
+        db_handler.user_create_group(c.params[0], c.origin)
+    elif '-s' in c.flags and len(c.params) == 1:
+        db_handler.user_switch_group(c.params[0], c.origin)
+    elif '-l' in c.flags and len(c.params) == 0:
+        db_handler.user_retrieve_groups(c.origin)
 
     """
     if '-l' in f and len(p) == 0:
@@ -37,5 +40,6 @@ def group(c: Cmd):
     """
 
 
-def item(f, t, o):
-    return None
+def item(c: Cmd):
+    if '-c' in c.flags:
+        db_handler.create_item(c.params[0], c.origin)
